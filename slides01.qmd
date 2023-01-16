@@ -7,12 +7,7 @@ format:
   beamer:
     theme: Madrid
     colortheme: lily
-    number-sections: false
-#    linkcolor: red
-#  revealjs:
-#    theme: simple
-#    slide-number: c/t
-#    footer: "<https://thomaselove.github.io/432-2023>"
+    fig-align: center
 ---
 
 ## Today's Agenda
@@ -22,76 +17,94 @@ format:
 3. Data organization in spreadsheets
 4. Naming Things and Getting Organized
 5. Switching from R Markdown to Quarto
-6. Building and Validating an ANOVA Model
+6. Building and Validating small models for Penguin Bill Length
 
 # Course Mechanics
 
 ## Welcome to 432.
 
-Everything is at <https://thomaselove.github.io/432-2023>
+Just about everything is linked at <https://thomaselove.github.io/432-2023>
 
-- Syllabus
-- Calendar
-    - with all deadlines, and links to class READMEs
-- Course Notes
-- Details on Assignments to come (+ next slide)
-- R and Data
-    - Updating / Installing R, RStudio, necessary R Packages
-    - Review / Learn some R Basics (also see 431 web site)
-- Sources
-    - Books, Articles, YouTube series, etc.
-- Links to Canvas, Piazza and Contact Us
+- [Calendar](https://thomaselove.github.io/432-2023/calendar.html)
+  - final word on all deadlines, and links to each class and TA office hours.
+- [Syllabus](https://thomaselove.github.io/432-syllabus-2023/) (can download as PDF)
+- [Course Notes](https://thomaselove.github.io/432-notes/) work in progress: only HTML
+- [Software](https://thomaselove.github.io/432-2023/software.html)
+    - Updating / Installing R and RStudio, necessary R Packages
+- Get Data (Code, Quarto templates) at [our 432-data page](https://github.com/THOMASELOVE/432-data)
+- Assignments (Labs, Projects, Quizzes - see next slide)
+- [Sources](https://github.com/THOMASELOVE/432-classes-2023/tree/main/sources) (books, articles, videos, etc.)
+- Key Links (Canvas, Campuswire, Shared Drive, Minute Papers)
+- Contact Us (Campuswire + TA office hours + My email)
 
 ## Assignments
 
-Every deliverable for the entire semester is listed in the Calendar, except for the Welcome to 432 Survey, which at least 30 of you've done, and if you haven't, visit https://bit.ly/432-2022-welcome-survey.
+Every deliverable for the entire semester is listed in the [Calendar](https://thomaselove.github.io/432-2023/calendar.html).
 
-- Two projects 
-    - Project 1 (use publicly available data for linear & logistic models)
-        1. Proposal due 2022-01-31 (data selection, cleaning, exploration)
-        2. Final Materials due 2022-03-04 (analyses, discussion)
-    - Project 2 (use almost any data you like and analyze it well)
-- Two Quizzes (Quiz 1 due 2022-02-21, Quiz 2 due 2022-04-18)
+- First thing is the Welcome to 432 Survey at <https://bit.ly/432-2023-welcome-survey> which you should complete by tomorrow (Wednesday 2023-01-18) at Noon.
+  - Also, please sign up for or accept your invitation to Campuswire and then answer my little poll question as soon as you can. Thanks.
+- Two projects (complete instructions now available for each)
+    - [Project A](https://thomaselove.github.io/432-2023/projA.html) (use publicly available data for linear & logistic models)
+        1. Plan due in mid-February (data selection, cleaning, exploration)
+        2. Final Portfolio & (recorded) Presentation right after Spring Break
+    - [Project B](https://thomaselove.github.io/432-2023/projB.html) (use almost any data and build specific models)
+        1. Proposal Form in early April
+        2. Presentation (in-person or Zoom) in May
+        3. Portfolio (prepared using Quarto) also in May
+
+## Assignments
+
+Every deliverable for the entire semester is listed in the [Calendar](https://thomaselove.github.io/432-2023/calendar.html).
+
+- Eight labs, meant to be (generally) shorter than 431 Labs
+    - [Lab 1](https://thomaselove.github.io/432-2023/lab1.html) is due Monday 2023-01-23 at 9 PM.
+    - [Lab 2](https://thomaselove.github.io/432-2023/lab2.html) is due Monday 2023-01-30 at 9 PM.
+    - Instructions are available now for all 8 labs. All due Mondays 9 PM.
+- Two Quizzes 
+    - Quiz 1 in late February, Quiz 2 in late April
+    - Receive Quiz on Thursday at 5 PM, due Monday at 9 PM.
     - Multiple choice and short answer, mostly, taken via a Google Form
-- Six labs  
-    - Labs will be posted before our next class. Lab 01 is due Monday 2022-01-24 at 9 PM.
-- Ten minute papers 
-    - First is due 2022-01-19. These actually take about 5 minutes each.
+- Many Minute Papers (due most Wednesdays at Noon.)
+    - First is after Class 3 due 2023-01-25.
+    - These actually take about 5 minutes each.
 
-Syllabus and Instructions will provide more information on grading/feedback.
+Syllabus and Instructions provide information on grading/feedback.
 
-## The Spring 2022 Teaching Assistants for 432 are:
+## Spring 2023 Teaching Assistants for 432
 
-- Stephanie Merlino Barr, PhD student in Clinical Translational Science
-- Wyatt Bensken, PhD student in Epidemiology \& Biostatistics
+- Stephanie Merlino Barr, PhD candidate in Clinical Translational Science
+- Shiying Liu, PhD candidate in Epidemiology & Biostatistics
 - Ali Elsharkawi, MS student in Clinical Research
-- Shiying Liu, PhD student in Epidemiology \& Biostatistics
-- Marie Michenkova, MS student in Biomedical Health Informatics
-- Julia Yang Payne, PhD student in Clinical \& Translational Science
-- Monika Strah, MS student in Epidemiology \& Biostatistics
-- Yanning Wu, PhD student in Epidemiology \& Biostatistics
+- Monika Strah, MS student in Epidemiology & Biostatistics
+- Ria Tilve, MPH student in Population Health Research
+- Kyaw Hla, MS student in Clinical Research
+- Zhengxi Chen, PhD student in Epidemiology & Biostatistics
+- Lindsay Petrenchik, MS graduate in Epidemiology & Biostatistics
 
-All return from working with students in 431 this past Fall, and I couldn't be more grateful for their energy and effort. Learn more about the TAs in Section 6 of the Syllabus.
+All return from working with students in 431 this past Fall, and I couldn't be more grateful for their energy and effort. Learn more about the TAs in the Syllabus. 
+
+TA Zoom Office Hours begin this Friday 2023-01-20. Details coming soon to Canvas, our website, and our Shared Drive.
 
 ## Getting Help
 
-- Piazza is the location for discussion about the class. I follow it closely.
+- Campuswire is the location for discussion about the class.
 - We have 8 teaching assistants volunteering their time to help you.
-- TAs will hold Office Hours beginning next Monday 2021-01-17 via Zoom, and the details will be available on Canvas (see Announcements) and our shared Google Drive.
-- Dr. Love is available before and (especially) after class.
-- Email Dr. Love directly only if you have a matter you need to discuss with him specifically. He's at `Thomas dot Love` at `case dot edu`.
+- TAs will hold Office Hours beginning Friday 2023-01-20 via Zoom.
+    - Details will be available all over the place, soon.
+- Dr. Love is available before and (especially) after class to chat.
+- Email Dr. Love if you have a matter you need to discuss with him specifically. He's at `Thomas dot Love` at `case dot edu`.
 
 We WELCOME your questions/comments/corrections/thoughts!
 
 ## Tools You Will Definitely Use in this Class
 
 - **Course Website** (see the bottom of this slide) especially the Calendar
-    - Each class has a README (announcements, reminders, etc.) plus slides
-- **R, RStudio and R Markdown** for, well, everything
-- **Canvas** for access to Zoom meetings *and 432 recordings*, submission of most assignments
-- **Google Drive via CWRU** for *recordings from 431*, forms (Minute Papers/Surveys/Quizzes) and receiving feedback on labs, projects, and Minute Papers
-- **Piazza** is our discussion board. It's a moderated place to ask questions, answer questions of your colleagues, and get help fast. You don't have to pay to use it.
-- **Zoom** for class sessions and for TA office hours
+    - Each class has a README (announcements, etc.) plus slides
+- **R, RStudio and Quarto** for, well, everything
+- **Canvas** for access to Zoom meetings and 432 recordings, submission of most assignments
+- **Google Drive via CWRU** for forms (Minute Papers/Surveys/Quizzes) and for feedback on assignments
+- **Campuswire** is our discussion board. It's a moderated place to ask questions, answer questions of your colleagues, and get help fast. Open 24/7.
+- **Zoom** for class recordings and TA office hours
 
 Some source materials are **password-protected**. What is the password?
 
@@ -101,9 +114,9 @@ Some source materials are **password-protected**. What is the password?
 
 # Why I Write Dates The Way I Do
 
-## How To Write Dates (https://xkcd.com/1179/)
+## How To Write Dates (<https://xkcd.com/1179/>)
 
-![](c01/figures/iso_8601.png)
+![](c01/figures/iso_8601.png){height=80%}
 
 # Data Organization in Spreadsheets
 
@@ -117,23 +130,20 @@ Some source materials are **password-protected**. What is the password?
 
 <https://www.jstatsoft.org/article/view/v059i10>
 
-## "Data Tidying" presentation in *R for Data Science*
+## "Data Tidying" presentation in *R for Data Science, 2e*
 
 - Defines tidy data
 - Demonstrates methods for tidying messy data in R
 
-Read Sections 
+Read Sections 4 (Data transformation) and 6 (Data tidying)
 
-- 5 (Data transformation), 
-- 10 (Tibbles), 11 (Data import) and, especially, 12 (Tidy data) 
-
-https://r4ds.had.co.nz/
+<https://r4ds.hadley.nz/>
 
 ## Data Organization in Spreadsheets (Broman & Woo)
 
 - Create a data dictionary.
-    - Jeff Leek has good thoughts on this in "How to Share Data with a Statistician" at https://github.com/jtleek/datasharing
-    - Shannon Ellis and Jeff Leek's preprint "How to Share data for Collaboration" touches on many of the same points at https://peerj.com/preprints/3139v5.pdf
+    - Jeff Leek has good thoughts on this in "How to Share Data with a Statistician" at <https://github.com/jtleek/datasharing>
+    - Shannon Ellis and Jeff Leek's preprint "How to Share data for Collaboration" touches on many of the same points at <https://peerj.com/preprints/3139v5.pdf>
     
 We want:
 
@@ -174,11 +184,11 @@ We want:
 
 ## Naming Files is Hard (https://xkcd.com/1459/)
 
-![](c01/figures/documents.png)
+![](c01/figures/documents.png){height=80%}
 
 ## How To Name Files
 
-![](c01/figures/bryan_names_no_yes.png)
+![](c01/figures/bryan_names_no_yes.png){height=80%}
 
 ## Data Organization in Spreadsheets: Use consistent, strong file names.
 
@@ -194,13 +204,13 @@ Avoid: spaces, punctuation, accented characters, case sensitivity
 
 ## from Jenny Bryan's "Naming Things" slides...
 
-![](c01/figures/bryan_leftpad.png)
+![](c01/figures/bryan_leftpad.png){height=80%}
 
 ## Jenny Bryan: Deliberate Use of Delimiters
 
 Deliberately use delimiters to make things easy to compute on and make it easy to recover meta-data from the filenames.
 
-![](c01/figures/bryan_delimiters.png)
+![](c01/figures/bryan_delimiters.png){height=60%}
 
 ## Don't get too cute.
 
@@ -231,18 +241,215 @@ Lots of great advice here on software, collaboration and project organization.
 
 # Switching from R Markdown to Quarto
 
-## details to come.
+## Switching from R Markdown to Quarto
 
-etc.
+<https://quarto.org/> is the main website for Quarto.
 
-# Building and Validating an ANOVA Model
+If you can write an R Markdown file, it will also work in Quarto, by switching the extension from `.rmd` to `.qmd`.
 
-## details to come.
+- We provide a Quarto template for Lab 1 (due Monday at 9 PM) which should ease your transition a bit.
+- Read [Chapter 30 (Quarto)](https://r4ds.hadley.nz/quarto.html) in [R for Data Science, 2e](https://r4ds.hadley.nz/)
+- Lots of other suggestions in the [Class 01 README](https://github.com/THOMASELOVE/432-classes-2023/tree/main/class01) and that material is also on [our Sources page](https://github.com/THOMASELOVE/432-classes-2023/tree/main/sources#learning-about-quarto-and-making-the-switch-from-r-markdown).
 
-etc.
+All of Dr. Love's material for this course is written using Quarto now.
 
-# What Should I Be Working On?
+# Building and Validating Linear Prediction Models
+
+## R Setup
+
+```{r}
+#| warning: false
+#| message: false
+#| echo: true
+
+knitr::opts_chunk$set(comment = NA)
+
+library(broom); library(glue); library(gt) 
+library(janitor); library(knitr); library(mosaic)
+library(patchwork); library(rsample) 
+library(palmerpenguins); library(tidyverse) 
+
+theme_set(theme_bw())
+```
+
+## Data Load
+
+```{r}
+#| echo: true
+our_tibble <- penguins |> 
+  select(species, sex, bill_length_mm) |>
+  drop_na()
+
+our_tibble |> summary()
+```
+
+## Partition `our_tibble` into training/test samples
+
+We will place 60% of the penguins in our training sample, and require that similar fractions of each species occur in our training and testing samples. We use functions from the **rsample** package here.
+
+```{r}
+#| echo: true
+set.seed(20230117)
+our_split <- initial_split(our_tibble, prop = 0.6, 
+                           strata = species)
+our_train <- training(our_split)
+our_test <- testing(our_split)
+```
+
+We could use `slice_sample()` as in the Course Notes if we didn't stratify by species.
+
+## Result of our partitioning
+
+```{r}
+#| echo: true
+our_train |> tabyl(species) |> adorn_totals() |> 
+  adorn_pct_formatting()
+our_test |> tabyl(species) |> adorn_totals() |> 
+  adorn_pct_formatting()
+```
+
+---
+
+```{r}
+ggplot(data = our_train, aes(x = species, y = bill_length_mm)) +
+  geom_violin(aes(fill = species)) +
+  geom_boxplot(width = 0.3, notch = TRUE) +
+  stat_summary(fill = "purple", fun = "mean", geom = "point", 
+               shape = 23, size = 3) +
+  facet_wrap(~ sex) + 
+  guides(fill = "none") +
+  labs(title = "Bill Length, by Species, faceted by Sex",
+       subtitle = glue(nrow(our_train), " of the Palmer Penguins"),
+       x = "Species", y = "Bill Length (in mm)")
+```
+
+## Code for previous slide
+
+```{r}
+#| echo: true
+#| eval: false
+ggplot(data = our_train, 
+       aes(x = species, y = bill_length_mm)) +
+  geom_violin(aes(fill = species)) +
+  geom_boxplot(width = 0.3, notch = TRUE) +
+  stat_summary(fill = "purple", fun = "mean", 
+               geom = "point", 
+               shape = 23, size = 3) +
+  facet_wrap(~ sex) + 
+  guides(fill = "none") +
+  labs(title = "Bill Length, by Species, faceted by Sex",
+       subtitle = 
+         glue(nrow(our_train), " of the Palmer Penguins"),
+       x = "Species", y = "Bill Length (in mm)")
+```
+
+
+## Model m1
+
+```{r}
+#| echo: true
+
+m1 <- lm(bill_length_mm ~ species + sex, data = our_train)
+
+anova(m1)
+```
+
+## Model 1 coefficients
+
+```{r}
+#| echo: true
+tidy(m1, conf.int = TRUE, conf.level = 0.90) |>
+  select(term, estimate, conf.low, conf.high) |>
+  kable(digits = 1)
+```
+
+## Model m2
+
+```{r}
+#| echo: true
+
+m2 <- lm(bill_length_mm ~ species, data = our_train)
+
+## anova(m2) yields p-value < 2.2e-16 (not shown here)
+
+tidy(m2, conf.int = TRUE, conf.level = 0.90) |>
+  select(term, estimate, conf.low, conf.high) |>
+  kable(digits = 1)
+```
+
+## In-Sample Comparison
+
+```{r}
+#| echo: true
+bind_rows(glance(m1), glance(m2)) |>
+  mutate(model = c("m1 (species & sex)", 
+                   "m2 (species only)")) |>
+  select(model, r2 = r.squared, adjr2 = adj.r.squared, 
+         AIC, BIC, sigma, nobs) |>
+  kable(digits = c(0, 3, 3, 1, 1, 2, 0))
+```
+
+Which model has better in-sample performance?
+
+## Assessing Performance in Test Sample
+
+```{r}
+#| echo: true
+m1_aug <- augment(m1, newdata = our_test)
+
+m1_res <- m1_aug |>
+  summarize(validated_R_sq = cor(bill_length_mm, .fitted)^2,
+            MAPE = mean(abs(.resid)),
+            RMSPE = sqrt(mean(.resid^2)),
+            max_Error = max(abs(.resid)))
+
+m2_aug <- augment(m2, newdata = our_test)
+
+m2_res <- m2_aug |>
+  summarize(validated_R_sq = cor(bill_length_mm, .fitted)^2,
+            MAPE = mean(abs(.resid)),
+            RMSPE = sqrt(mean(.resid^2)),
+            max_Error = max(abs(.resid)))
+```
+
+## Summarizing Test Sample Performance
+
+```{r}
+#| echo: true
+bind_rows(m1_res, m2_res) |>
+  mutate(model = c("m1 (species & sex)", 
+                   "m2 (species only)")) |>
+  relocate(model) |>
+  kable(digits = c(0, 3, 2, 2, 1))
+```
+
+Which model predicts better in the test sample?
+
+## Residual Plots for Model m1 (training sample)
+
+```{r}
+#| echo: true
+#| fig.height: 5
+par(mfrow = c(1,2)); plot(m1, which = c(1,2))
+par(mfrow = c(1,1))
+```
+
+## What we did in this example...
+
+1. R packages, usual commands, ingest the data.
+2. Look at what we have and ensure it makes sense. (DTDP)
+3. Partition the data into a training sample and a test sample.
+4. Run a two-way ANOVA model (called `m1`) in the training sample; evaluate the quality of fit.
+5. Run a one-way ANOVA model (called `m2`) in the training sample; evaluate the quality of fit.
+6. Use augment to predict from each model into the test sample; summarize and compare predictive quality.
+7. Choose between the models and evaluate assumptions for our choice.
 
 ## For Next Time...
 
-etc.
+1. If you're not registered with SIS, do so, for PQHS/CRSP/MPHP 432.
+2. Review the website and calendar, and skim the syllabus and Notes.
+3. Welcome to 432 Survey at <https://bit.ly/432-2023-welcome-survey> by noon Wednesday 2023-01-18.
+4. Accept the invitation to join the Campuswire Discussion Forum for 432 and answer my little poll there.
+5. Buy Jeff Leek's How to be a Modern Scientist and read it by the end of January.
+6. Get started installing or updating the software you need for the course.
+7. Get started on Lab 1, due Monday 2023-01-23 at 9 PM.
