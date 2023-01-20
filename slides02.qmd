@@ -26,7 +26,7 @@ The most relevant sections of the Course Notes are Chapters 1-5.
 knitr::opts_chunk$set(comment = NA)
 
 library(broom) # for tidy, glance and augment
-library(car) # for vif
+library(car) # for boxCox and vif
 library(Epi) # for twoby2
 library(GGally) # for ggpairs
 library(knitr) # for kable
@@ -171,7 +171,7 @@ nh1982 <- read_rds("c02/data/nh1982.Rds")
 
 In Analysis 1, we will compare the means of SBP1 and SBP2 for our 1982 participants.
 
-In Analysis 2, we will compare the mean of SBP2 between our 159 participants who were hospitalized and the 1823 who were not?
+In Analysis 2, we will compare the mean of SBP3 between our 159 participants who were hospitalized and the 1823 who were not?
 
 Which of these analyses uses paired samples, and why?
 
