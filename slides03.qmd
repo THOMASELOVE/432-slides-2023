@@ -12,11 +12,13 @@ format:
 
 ## Today's Agenda
 
-1. Incorporating Survey Weights ...
-  - in estimating means and confidence intervals
-  - in building linear regression models
-2. **????**
+Incorporating Survey Weights ...
 
+1. In estimating means and confidence intervals
+2. In building linear regression models
+3. Into a more detailed t-test approach using NHANES
+
+Primary Source: <https://bookdown.org/rwnahhas/RMPH/survey-design.html>
 
 ## Today's R Setup
 
@@ -26,11 +28,11 @@ knitr::opts_chunk$set(comment = NA)
 
 library(broom)
 library(janitor) 
+library(gtsummary)
 library(knitr)
 library(mosaic)
 
 library(nhanesA) # data source
-library(haven) # for zap_label
 library(survey) # survey-specific tools
 
 library(tidyverse)
@@ -89,7 +91,7 @@ The `DEMO` file contains two kinds of sampling weights:
 
 NHANES also provides several weights for subsamples. A good rule for NHANES is to identify the variable of interest that was collected on the smallest number of respondents. The sample weight that applies to that variable is the appropriate one to use in your analysis.
 
-In our case, we will use the weights from the MEC exam.
+In our first case, we will study total cholesterol and use the weights from the MEC exam.
 
 ## What Variables Do We Need?
 
@@ -99,7 +101,7 @@ In our case, we will use the weights from the MEC exam.
 - `DMQMILIZ` = served active duty in US Armed Forces (1 = yes, 2 = no)
 - `RIDSTATR` = 2 if subject took both interview and MEC exam
 - `WTMEC2YR` - Full sample 2 year MEC exam weight
-- `LBXTC` = Total Cholesterol (mg/dl)
+- `LBXTC` = Total Cholesterol (mg/dl) - this is our outcome
 
 The first five of these came from the `DEMO_H` file, and the first and last comes from `TCHOL_H`.
 
@@ -123,7 +125,6 @@ dim(joined_df)
 
 nh1314 <- joined_df |> # has n = 8291
     tibble() |>
-    zap_label() |> # still have n = 8291
     filter(complete.cases(LBXTC)) |> # now n = 7624
     filter(RIDSTATR == 2) |> # still 7624
     filter(RIDAGEYR > 19 & RIDAGEYR < 40) |> # now n = 1802
@@ -406,23 +407,141 @@ par(mfrow = c(2,2)); plot(glm1_res)
 par(mfrow = c(2,2)); plot(glm2_res)
 ```
 
-# Something Else
+# A More Complete Weighted NHANES Analysis (See <https://wwwn.cdc.gov/nchs/data/tutorials/DB303_Fig1_R.R>)
 
-## Slides 1
+## New Question, New Data
 
-## Slides 2
+We are now interested in looking at the percentage of persons aged 20 and over with depression, by age and sex, in the US in 2013-2016. Start by pulling in the relevant data using `nhanesA`...
 
-## Slides 3
+```{r}
+#| echo: true
 
-## Slides 4
+DEMO_H <- nhanes('DEMO_H') |> select(SEQN, RIAGENDR, 
+                    RIDAGEYR, SDMVSTRA, SDMVPSU, WTMEC2YR)
+DEMO_I <- nhanes('DEMO_I') |> select(SEQN, RIAGENDR, 
+                    RIDAGEYR, SDMVSTRA, SDMVPSU, WTMEC2YR)
+DEMO <- bind_rows(DEMO_H, DEMO_I) 
+DPQ_H <- nhanes('DPQ_H') 
+DPQ_I <- nhanes('DPQ_I') 
+DPQ <- bind_rows(DPQ_H, DPQ_I) 
+```
 
-## Slides 5
+## Merge DEMO and DPQ files and create derived variables
 
-## Slides 6
+```{r}
+#| echo: true
+dat2 <- left_join(DEMO, DPQ, by = "SEQN") |> tibble() |>
+  # Set 7=Refused and 9=Don't Know To NA 
+  mutate(across(.cols = DPQ010:DPQ090, 
+                ~ ifelse(. >=7, NA, .))) %>%
+  mutate(one = 1,
+         PHQ9_score = rowSums(select(. , DPQ010:DPQ090)),
+         Depression = ifelse(PHQ9_score >= 10, 100, 0),
+         Sex = factor(RIAGENDR, labels = c("M", "F")),
+         Age_group = cut(RIDAGEYR, 
+            breaks = c(-Inf, 19, 39, 59, Inf),
+            labels = c("Under 20", "20-39", "40-59", "60+")),
+         WTMEC4YR = WTMEC2YR/2,
+         inAnalysis = (RIDAGEYR >= 20 & !is.na(PHQ9_score))) |>
+  select(-starts_with("DPQ"))
+```
 
-## Slides 7
+## Define Survey Design
 
-## Slides 8
+Here's the survey design for the overall data set:
+
+```{r}
+#| echo: true
+NH_des_all <- svydesign(data = dat2, id = ~ SDMVPSU, 
+  strata = ~ SDMVSTRA, weights = ~ WTMEC4YR, nest = TRUE)
+
+dim(NH_des_all)
+```
+
+Here's the survey design object for the subset of interest: adults aged 20 and over with a valid PHQ-9 depression score:
+
+```{r}
+#| echo: true
+
+NH_des_dat2 <- NH_des_all |> subset(inAnalysis)
+
+dim(NH_des_dat2)
+```
+
+## Define a function to call svymean and unweighted count
+
+```{r}
+#| echo: true
+
+ourSummary <- function(varformula, byformula, design){
+  # Get mean, stderr, and unweighted sample size
+  c <- svyby(varformula, byformula, design, unwtd.count ) 
+  p <- svyby(varformula, byformula, design, svymean ) 
+  outSum <- left_join(select(c,-se), p) 
+  outSum
+}
+```
+
+### Estimate overall prevalence of depression
+
+```{r}
+#| echo: true
+ourSummary(~ Depression, ~ one, NH_des_dat2)
+```
+
+## Estimate prevalence of depression in various strata
+
+```{r}
+#| echo: true
+
+## By sex
+ourSummary(~ Depression, ~ Sex, NH_des_dat2)
+## By age
+ourSummary(~ Depression, ~ Age_group, NH_des_dat2)
+```
+
+## Estimate prevalence of depression by Age and Sex
+
+```{r}
+#| echo: true
+
+## By sex and age
+ourSummary(~ Depression, ~ Sex + Age_group, NH_des_dat2)
+```
+
+## Compare Prevalence between Male and Female
+
+Across all age groups:
+
+```{r}
+#| echo: true
+svyttest(Depression ~ Sex, NH_des_dat2)
+```
+
+## Compare Prevalence between Male and Female
+
+In people ages 40-59:
+
+```{r}
+#| echo: true
+svyttest(Depression ~ Sex, subset(NH_des_dat2, Age_group == "40-59"))
+```
+
+## Differences by Age Group, among Adults
+
+```{r}
+#| echo: true
+
+svyttest(Depression ~ Age_group, subset(NH_des_dat2, 
+                  Age_group=="20-39" | Age_group=="40-59"))
+```
 
 ## Next Time?
 
+Linear Regression and ANOVA / ANCOVA models
+
+### Reminders
+
+1. Please complete the **Minute Paper after Class 3** by noon tomorrow (Wednesday 2023-01-25)
+2. Get started on **Lab 2**, due next Monday 2023-01-30 at 9 PM
+3. Continue reading **How To Be A Modern Scientist**
