@@ -1,0 +1,428 @@
+---
+title: "432 Class 03"
+author: "<https://thomaselove.github.io/432-2023/>"
+date: "2023-01-24"
+date-format: iso
+format: 
+  beamer:
+    theme: Madrid
+    colortheme: lily
+    fig-align: center
+---
+
+## Today's Agenda
+
+1. Incorporating Survey Weights ...
+  - in estimating means and confidence intervals
+  - in building linear regression models
+2. **????**
+
+
+## Today's R Setup
+
+```{r}
+#| echo: true
+knitr::opts_chunk$set(comment = NA)
+
+library(broom)
+library(janitor) 
+library(knitr)
+library(mosaic)
+
+library(nhanesA) # data source
+library(haven) # for zap_label
+library(survey) # survey-specific tools
+
+library(tidyverse)
+
+theme_set(theme_bw())
+```
+
+# Incorporating survey weights (an introduction)
+
+## What are survey weights?
+
+In many surveys, each sampled subject is assigned a weight that is equivalent to the reciprocal of his/her probability of selection into the sample.
+
+$$
+\mbox{Sample Subject's Weight} = \frac{1}{Prob(selection)}
+$$
+
+but more sophisticated sampling designs require more complex weighting schemes. Usually these are published as part of the survey data.
+
+There are several packages available to help incorporate survey weights in R, but I will demonstrate part of the `survey` package today.
+
+## An NHANES Example
+
+Let's use the NHANES 2013-14 data and pull in both the demographics (`DEMO_H`) and total cholesterol (`TCHOL_H`) databases.
+
+```{r}
+#| echo: true
+demo_raw <- nhanes('DEMO_H')
+tchol_raw <- nhanes('TCHOL_H')
+```
+
+Detailed descriptions available at
+
+- <https://wwwn.cdc.gov/Nchs/Nhanes/2013-2014/DEMO_H.htm>
+- <https://wwwn.cdc.gov/Nchs/Nhanes/2013-2014/TCHOL_H.htm>
+
+## Weighting in NHANES
+
+Weights are created in NHANES to account for the complex survey design. A sample weight is assigned to each sample person. It is a measure of the number of people in the population represented by that sample person.
+
+The sample weight is created in three steps:
+
+1. the base weight is computed, which accounts for the unequal probabilities of selection given that some demographic groups were over-sampled;
+2. adjustments are made for non-response; and
+3. post-stratification adjustments are made to match estimates of the U.S. civilian non-institutionalized population available from the Census Bureau.
+
+Source: <https://wwwn.cdc.gov/nchs/nhanes/tutorials/Module3.aspx>
+
+
+## Weights in our NHANES data
+
+The `DEMO` file contains two kinds of sampling weights:
+
+- the interview weight (`WTINT2yr`), and
+- the MEC exam weight (`WTMEC2yr`)
+
+NHANES also provides several weights for subsamples. A good rule for NHANES is to identify the variable of interest that was collected on the smallest number of respondents. The sample weight that applies to that variable is the appropriate one to use in your analysis.
+
+In our case, we will use the weights from the MEC exam.
+
+## What Variables Do We Need?
+
+- `SEQN` = subject identifying code
+- `RIAGENDR` = sex (1 = M, 2 = F)
+- `RIDAGEYR` = age (in years at screening, topcode at 80)
+- `DMQMILIZ` = served active duty in US Armed Forces (1 = yes, 2 = no)
+- `RIDSTATR` = 2 if subject took both interview and MEC exam
+- `WTMEC2YR` - Full sample 2 year MEC exam weight
+- `LBXTC` = Total Cholesterol (mg/dl)
+
+The first five of these came from the `DEMO_H` file, and the first and last comes from `TCHOL_H`.
+
+## Merge the `DEMO` and `TCHOL` files
+
+```{r}
+#| echo: true
+
+dim(demo_raw)
+dim(tchol_raw)
+
+joined_df <- inner_join(demo_raw, tchol_raw, by = c("SEQN"))
+
+dim(joined_df)
+```
+
+## Create a small analytic tibble
+
+```{r}
+#| echo: true
+
+nh1314 <- joined_df |> # has n = 8291
+    tibble() |>
+    zap_label() |> # still have n = 8291
+    filter(complete.cases(LBXTC)) |> # now n = 7624
+    filter(RIDSTATR == 2) |> # still 7624
+    filter(RIDAGEYR > 19 & RIDAGEYR < 40) |> # now n = 1802
+    filter(DMQMILIZ < 3) |> # drop 7 = refused, n = 1801
+    mutate(FEMALE = RIAGENDR - 1,
+           AGE = RIDAGEYR,
+           US_MIL = ifelse(DMQMILIZ == 1, 1, 0),
+           WT_EX = WTMEC2YR,
+           TOTCHOL = LBXTC) |>
+    select(SEQN, FEMALE, AGE, TOTCHOL, US_MIL, WT_EX)
+```
+
+## Our `nh1314` analytic sample: Variables
+
+```{r}
+#| echo: true
+nh1314 |> tabyl(FEMALE, US_MIL) |> 
+  adorn_totals(where = c("row", "col")) |> adorn_title()
+```
+
+```{r}
+#| echo: true
+df_stats(~ AGE + TOTCHOL, data = nh1314) |>
+  rename(med = median, na = missing) |>
+  kable(digits = 1)
+```
+
+## Our `nh1314` analytic sample: Weights
+
+Each weight represents the number of people exemplified by that subject.
+
+```{r}
+#| echo: true
+favstats(~ WT_EX, data = nh1314) |>
+  rename(na = missing) |>
+  kable(digits = 1)
+```
+
+## Create `nh_design` survey design
+
+```{r}
+#| echo: true
+nh_design <- 
+    svydesign(
+        id = ~ SEQN,
+        weights = ~ WT_EX,
+        data = nh1314) 
+
+nh_design <- update( nh_design, one = 1) 
+
+## this one = 1 business will help us count
+```
+
+## Unweighted counts, overall and by sex
+
+```{r}
+#| echo: true
+
+sum(weights(nh_design, "sampling") != 0)
+svyby( ~ one, ~ FEMALE, nh_design, unwtd.count)
+svyby( ~ one, ~ FEMALE + US_MIL, nh_design, unwtd.count)
+```
+
+## Weighted counts, overall and by groups
+
+Weighted size of the generalizable population, overall and by groups.
+
+```{r}
+#| echo: true
+
+svytotal( ~ one, nh_design )
+
+svyby( ~ one, ~ FEMALE * US_MIL, nh_design, svytotal)
+```
+
+## Use the survey design to get weighted means
+
+What is the mean of total cholesterol, overall and in groups?
+
+```{r}
+#| echo: true
+
+svymean( ~ TOTCHOL, nh_design, na.rm = TRUE)
+
+svyby(~ TOTCHOL, ~ FEMALE + US_MIL, nh_design, 
+      svymean, na.rm = TRUE)
+```
+
+## Unweighted Mean of TOTCHOL
+
+```{r}
+#| echo: true
+
+nh1314 |> 
+  summarise(n = n(), mean(TOTCHOL)) |>
+  kable(digits = 2)
+```
+
+Note that we're using `summarise` to ensure that we get the **dplyr** package's version of `summarize`.
+
+## Unweighted Group Means of TOTCHOL
+
+```{r}
+#| echo: true
+
+nh1314 |> group_by(FEMALE, US_MIL) |>
+  summarise(n = n(), mean(TOTCHOL)) |>
+  kable(digits = 2)
+```
+
+
+## Measures of uncertainty (Survey-Weighted)
+
+Mean of total cholesterol within groups with 90% CI?
+
+```{r}
+#| echo: true
+
+grouped_result <- svyby(~ TOTCHOL, ~ FEMALE + US_MIL, 
+                        nh_design, svymean, na.rm = TRUE)
+coef(grouped_result)
+confint(grouped_result, level = 0.90)
+```
+
+- Get standard errors with `se(grouped_result)`, too.
+
+## Placing estimated means in `res`
+
+```{r}
+#| echo: true
+res <- tibble(
+  type = rep(c("Unweighted", "Survey-Weighted"),4),
+  female = c(rep("Female", 4), rep("Male", 4)),
+  us_mil = rep(c("Military", "Military", 
+                 "Not Military", "Not Military"), 2),
+  MEAN = c(169.5, 164.1984, 179.71, 180.0248, 
+           187.11, 186.6966, 182.22, 182.3569) )
+```
+
+## The Estimated Means
+
+```{r}
+#| echo: true
+res |> kable(digits = 1)
+```
+
+```{r}
+#| echo: true
+#| eval: false
+ggplot(res, aes(x = female, y = MEAN, col = type)) +
+  geom_point(size = 4) +
+  facet_wrap(~ us_mil) ## plot shown on next slide
+```
+
+## Plotting the Estimated Means
+
+```{r}
+ggplot(res, aes(x = female, y = MEAN, col = type)) +
+  geom_point(size = 4) +
+  facet_wrap(~ us_mil)
+```
+
+# Building Models
+
+## Models for `TOTCHOL` in our `nh1314` data
+
+First, we'll ignore the weighting, and fit one model with main effects of all three predictors (model mod1) and then a second model which incorporates an interaction of FEMALE and US_MIL.
+
+```{r}
+#| echo: true
+mod1 <- lm(TOTCHOL ~ AGE + FEMALE + US_MIL, data = nh1314)
+
+mod2 <- lm(TOTCHOL ~ AGE + FEMALE * US_MIL, data = nh1314)
+```
+
+The interaction term means that the effect of FEMALE on TOTCHOL depends on the US_MIL status.
+
+## Unweighted Model `mod1` (no interaction)
+
+```{r}
+#| echo: true
+tidy(mod1, conf.int = TRUE, conf.level = 0.90) |>
+  select(-statistic) |> kable(digits = 2)
+```
+
+```{r}
+#| echo: true
+glance(mod1) |> select(r2 = r.squared, adjr2 = adj.r.squared,
+    AIC, BIC, sigma, nobs, df) |> kable(dig = c(4,4,1,1,3,0,0))
+```
+
+## Residuals for Model `mod1`
+
+```{r}
+par(mfrow = c(2,2)); plot(mod1)
+```
+
+## Unweighted Model `mod2` (with interaction)
+
+```{r}
+tidy(mod2, conf.int = TRUE, conf.level = 0.90) |>
+  select(-statistic) |> kable(digits = 2)
+```
+
+```{r}
+glance(mod2) |> select(r2 = r.squared, adjr2 = adj.r.squared,
+    AIC, BIC, sigma, nobs, df) |> kable(digits = c(4,4,1,1,3,0,0))
+```
+
+
+## Residuals for Model `mod2`
+
+```{r}
+par(mfrow = c(2,2)); plot(mod2)
+```
+
+## Perform a survey-weighted generalized linear model
+
+Again, we'll run two models, first without and second with an interaction term between `FEMALE` and `US_MIL`.
+
+```{r}
+#| echo: true
+
+glm1_res <- svyglm(
+    TOTCHOL ~ AGE + FEMALE + US_MIL, 
+    nh_design, family = gaussian())
+```
+
+```{r}
+#| echo: true
+
+glm2_res <- svyglm(
+    TOTCHOL ~ AGE + FEMALE * US_MIL, 
+    nh_design, family = gaussian())
+```
+
+Gaussian family used to generate linear regressions here.
+
+## Model 1 Results
+
+```{r}
+#| echo: true
+
+tidy(glm1_res, conf.int = TRUE, conf.level = 0.90) |>
+  select(-statistic) |> kable(digits = 2)
+```
+
+```{r}
+#| echo: true
+
+glance(glm1_res) |>
+  select(nobs, AIC, BIC, everything()) |> kable(digits = 1)
+```
+
+## Model 2 Results
+
+```{r}
+#| echo: true
+
+tidy(glm2_res, conf.int = TRUE, conf.level = 0.90) |>
+  select(-statistic) |> kable(digits = 2)
+```
+
+```{r}
+#| echo: true
+
+glance(glm2_res) |>
+  select(nobs, AIC, BIC, everything()) |> kable(digits = 1)
+```
+
+## Residuals for Model `glm1_res`
+
+```{r}
+par(mfrow = c(2,2)); plot(glm1_res)
+```
+
+## Residuals for Model `glm2_res`
+
+```{r}
+par(mfrow = c(2,2)); plot(glm2_res)
+```
+
+# Something Else
+
+## Slides 1
+
+## Slides 2
+
+## Slides 3
+
+## Slides 4
+
+## Slides 5
+
+## Slides 6
+
+## Slides 7
+
+## Slides 8
+
+## Next Time?
+

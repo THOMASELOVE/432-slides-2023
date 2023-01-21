@@ -1,0 +1,31 @@
+---
+title: "432 Class 04"
+author: "<https://thomaselove.github.io/432-2023/>"
+date: "2023-01-26"
+date-format: iso
+format: 
+  beamer:
+    theme: Madrid
+    colortheme: lily
+    fig-align: center
+---
+
+## Today's Agenda
+
+To come.
+
+## Today's R Setup
+
+```{r}
+#| echo: true
+knitr::opts_chunk$set(comment = NA)
+
+library(janitor) 
+library(tidyverse) # for all kinds of things
+
+theme_set(theme_bw())
+```
+
+## Next Week?
+
+
