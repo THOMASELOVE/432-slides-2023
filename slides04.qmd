@@ -387,7 +387,7 @@ bind_rows(glance(m_1), glance(m_2), glance(m_1int), glance(m_2int)) |>
 ```
 
 - Adjusted $R^2$, $\sigma$, AIC and BIC all improve as we move down from `m1` towards `m2_int`. 
-- BUT the testing sample cannot judge between models accurately. Our models have already *seen* that data.
+- BUT the training sample cannot judge between models accurately. Our models have already *seen* that data.
 - For fairer comparisons, we'll need to also consider the (held out) testing sample.
 
 ## Model predictions of `bmi` in the test sample
