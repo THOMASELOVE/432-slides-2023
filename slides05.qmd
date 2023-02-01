@@ -36,7 +36,6 @@ format:
 knitr::opts_chunk$set(comment = NA)
 
 library(mosaic)            ## auto-loads mosaicData
-library(here)
 library(janitor)
 library(knitr)
 library(broom)
