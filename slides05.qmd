@@ -263,7 +263,7 @@ The log of the likelihood ratio, multiplied by -2, yields a test against a $\chi
 
 - Under the $R^2$ values, we have `g = 9.827`.
 - This is the $g$-index, based on Gini's mean difference. If you randomly selected two of the subjects in the model, the average difference in predicted `cesd` will be 9.827. 
-- This can be compared to the Gini's mean difference for the original `ptsd` values, from `describe`, which was `Gmd = 14.23`.
+- This can be compared to the Gini's mean difference for the original `cesd` values, from `describe`, which was `Gmd = 14.23`.
 
 ## Validate the summary statistics of an `ols` fit
 
@@ -282,10 +282,9 @@ validate(mod1)
 
 ## Interpreting the Resampling Validation Results
 
-```
-          index.orig training    test optimism index.corrected  n
-R-square      0.4787   0.4874  0.4737   0.0137          0.4650 40
-```
+-- | index.orig | training | test | optimism | index.corrected | n
+---: | ---: | ---: | ---: | ---: | ---: | ---: 
+$R^2$ | 0.4787 | 0.4874 | 0.4737 | 0.0137 | 0.4650 | 40
 
 - `index.orig` for $R^2$ is 0.4787. That's what we get from the data we used to fit the model, and is what we see in our standard output.
 - With `validate` we create 40 (by default) bootstrapped resamples of the data and then split each of those into training and test samples.
@@ -294,9 +293,9 @@ R-square      0.4787   0.4874  0.4737   0.0137          0.4650 40
 - `optimism` = `training` result - `test` result = 0.0137
 - `index.corrected` = `index.orig` - `optimism` = 0.4650
 
-While our *nominal* $R^2$ is 0.4787 for this model, but correcting for optimism yields a *validated* $R^2$ of 0.4650
+While our *nominal* $R^2$ is 0.4787 for `mod1`, correcting for optimism yields a *validated* $R^2$ of 0.4650
 
-- $R^2 = 0.4650$ better estimates how the model will perform in new data.
+- $R^2 = 0.4650$ better estimates how `mod1` will perform in new data.
 
 ## ANOVA for `mod1` fit by `ols`
 
@@ -312,26 +311,26 @@ anova(mod1)
 ## summary for `mod1` fit by `ols`
 
 ```{r, eval = FALSE}
-summary(mod1)
+summary(mod1, conf.int = 0.90)
 ```
 
 ![]("c05/figures/fig04.png"){width=90%}
 
 - How do we interpret the `subst` effects estimated by this model?
-    - Effect of `subst` being `cocaine` instead of `alcohol` on `ces_d` is `-3.4440` assuming no change in `mcs`, with 95% CI (-5.42, -1.47).
-    - Effect of `subst` being `heroin` instead of `alcohol` on `ces_d` is `-1.7791` assuming no change in `mcs`, with 95% CI (-3.88, +0.32).
+    - Effect of `subst` being `cocaine` instead of `alcohol` on `ces_d` is `-3.44` assuming no change in `mcs`, with 90% CI (-5.10, -1.79).
+    - Effect of `subst` being `heroin` instead of `alcohol` on `ces_d` is `-1.78` assuming no change in `mcs`, with 90% CI (-3.54, -0.02).
 
 But what about the `mcs` effect?
 
 ## summary for `mod1` fit by `ols`
 
 ```{r, eval = FALSE}
-summary(mod1)
+summary(mod1, conf.int = 0.90)
 ```
 
 ![]("c05/figures/fig04.png"){width=90%}
 
-- Effect of `mcs`: `-12.6580` is the estimated change in `cesd` associated with a move from `mcs` = 21.676 (see `Low` value) to `mcs` = 40.941 (the `High` value) assuming no change in `subst`.
+- Effect of `mcs`: `-12.66` is the estimated change in `cesd` associated with a move from `mcs` = 21.68 (see `Low` value) to `mcs` = 40.94 (the `High` value) assuming no change in `subst`.
 - `ols` chooses the `Low` and `High` values from the interquartile range.
 
 ```{r}
