@@ -296,7 +296,7 @@ We're spending 9 degrees of freedom in our kitchen sink model. (We can verify th
 - Each binary categorical variable also costs 1 df
 - Multi-categorical variables with L levels cost L-1 df to estimate
 
-Suppose we're willing to spend up to a total of **14** degrees of freedom (i.e. a combined 5 more on interaction terms and other ways to capture non-linearity.)
+Suppose we're willing to spend up to a total of **16** degrees of freedom (i.e. a combined 7 more on interaction terms and other ways to capture non-linearity.)
 
 What should we choose?
 
