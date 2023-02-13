@@ -1,0 +1,721 @@
+---
+title: "432 Class 09"
+author: "<https://thomaselove.github.io/432-2023/>"
+date: "2023-02-14"
+date-format: iso
+format: 
+  beamer:
+    theme: Madrid
+    colortheme: lily
+    fig-align: center
+---
+
+## Today's Agenda
+
+- A New NHANES Example
+- [Logistic Regression Analyses in Project A](https://thomaselove.github.io/432-2023/projA.html#new-section-9.-logistic-regression-analyses)
+  - Establishing a Research Question
+  - Identifying / Tidying Outcome and Candidate Predictors
+  - Dealing with Missing Data
+  - Building a "Main Effects" Model and Plotting Effects
+  - Considering Non-Linear Terms
+  - Fitting an "Augmented" Model and Plotting Effects
+  - Summarizing/Presenting a Final Model
+    - In-Sample and Validated Model Summaries
+    - Selecting Model Y or Model Z
+    - Describing a Meaningful Effect (see Notes, Chapter 22)
+    - ROC curve for the Final Model
+    - Nomogram for the Final Model
+
+## Today's R Setup
+
+```{r}
+#| echo: true
+#| message: false
+knitr::opts_chunk$set(comment = NA)
+
+library(nhanesA)
+library(broom)
+library(caret)
+library(janitor)
+library(knitr)
+library(mosaic)
+library(naniar)
+library(pROC)
+library(rms)
+library(simputation)
+library(tidyverse)
+
+theme_set(theme_bw()) 
+```
+
+# The Data
+
+## NHANES Data
+
+We'll use data from the 2011-2012 administration of NHANES here, just because I don't want to overlap with any studies people might be thinking about for Project B.
+
+Data bases we'll use are:
+
+- **DEMO_G** for Demographic Variables
+- **CDQ_G** for Cardiovascular Health Questionnaire
+- **HSQ_G** for Current Health Status Questionnaire
+- **BPX_G** for Blood Pressure Examination Results
+- **BMX_G** for Body Measures Examination Results
+- **MCQ_G** for Medical Conditions Questionnaire
+
+## Pulling the Data, I
+
+```{r}
+#| echo: true
+demo_g <- nhanes("DEMO_G") |> tibble(); dim(demo_g)
+cdq_g <- nhanes("CDQ_G") |> tibble(); dim(cdq_g)
+hsq_g <- nhanes("HSQ_G") |> tibble(); dim(hsq_g)
+```
+
+## Pulling the Data, II
+
+```{r}
+#| echo: true
+bpx_g <- nhanes("BPX_G") |> tibble(); dim(bpx_g)
+bmx_g <- nhanes("BMX_G") |> tibble(); dim(bmx_g)
+mcq_g <- nhanes("MCQ_G") |> tibble(); dim(mcq_g)
+```
+
+## Merging the Tibbles
+
+```{r}
+#| echo: true
+df_mlist <- list(demo_g, cdq_g, hsq_g, bpx_g, bmx_g, mcq_g)
+
+nh_merge <- df_mlist |>
+  reduce(left_join, by = "SEQN") # reduce is from purrr
+
+dim(nh_merge)
+```
+
+We had 262 variables in our original seven tibbles, but that counts the SEQN variable seven times, and we only have it once in our `nh_merge` tibble.
+
+Now, which of these 256 variables are we actually going to use?
+
+## Variables We'll Use Today
+
+NHANES | Description | Source
+-------: | :--------------------------------------------------- | :-----
+SEQN | Identifying code | All 6 files
+CDQ010 | Shortness of breath on stairs/inclines? | CDQ_G
+RIDAGEYR | Age in years at screening | DEMO_G
+HSD010 | General health condition (E/VG/G/F/P) | HSQ_G
+LBXSCLSI | Serum Chloride (mmol/L) | BIOPRO_G
+BPXDI1 | Diastolic BP (first reading, in mm Hg) | BPX_G
+BMXBMI | Body Mass Index (kg/$m^2$) | BMX_G
+MCQ010 | Ever been told you have asthma | MCQ_G
+
+## Selecting Today's Variables
+
+```{r}
+#| echo: true
+nh_today <- nh_merge |>
+  select(SEQN, CDQ010, age = RIDAGEYR, sroh = HSD010, 
+         dbp = BPXDI1, bmi = BMXBMI, 
+         asthma = MCQ010) |>
+  filter(CDQ010 < 3) |>
+  filter(age < 80)
+
+dim(nh_today)
+```
+
+## Check the variables, 1
+
+1. SEQN should be unique for each row in the data.
+
+```{r}
+#| echo: true
+identical(nrow(nh_today), n_distinct(nh_today$SEQN))
+```
+
+## Check the variables, 2
+
+2. CDQ010 was 1 for Yes, 2 for No. We want 1 for Yes, 0 for No.
+
+```{r}
+#| echo: true
+nh_today <- nh_today |> mutate(sbreath = 2 - CDQ010)
+
+nh_today |> count(CDQ010, sbreath) # sanity check
+
+nh_today <- nh_today |> select(-CDQ010) |> 
+  relocate(sbreath, .after = "SEQN")
+```
+
+## Check the variables, 3
+
+3. Age should be between 40 and 79 years
+4. Body mass index should be between 12.4 and 82.1 kg/$m^2$
+5. Diastolic BP should be between 30 and 120 mm Hg (treat values below 30 as NA)
+
+```{r}
+#| echo: true
+df_stats(~ age + bmi + dbp, data = nh_today) |> 
+  rename(var = response) |> kable(digits = 1)
+```
+
+## Replace `dbp` values below 30 with NA
+
+```{r}
+#| echo: true
+
+nh_today |> count(dbp < 30)
+
+nh_today <- replace_with_na_at(nh_today, "dbp", ~ .x < 30)
+
+favstats(~ dbp, data = nh_today) |> kable(digits = 1)
+
+```
+
+
+## Check the variables, 4
+
+6. `asthma` should be a two-level factor (currently 1 = Yes, 2 = No, 9 = Don't Know, which we'll treat as missing)
+
+```{r}
+#| echo: true
+nh_today |> count(asthma)
+```
+
+## Recoding Asthma as a factor with 3 missing values
+
+```{r}
+#| echo: true
+nh_today <- nh_today |>
+  mutate(asthma = fct_recode(
+    factor(asthma), "Yes" = "1", "No" = "2", NULL = "9"),
+    asthma = fct_relevel(asthma, "No"))
+
+nh_today |> tabyl(asthma) |> adorn_pct_formatting()
+```
+
+## Check the variables, 5
+
+7. Self-reported overall health should be a five-level factor
+
+```{r}
+#| echo: true
+nh_today <- nh_today |>
+  mutate(sroh = fct_recode(factor(sroh), "E" = "1", "VG" = "2", "G" = "3",
+                             "F" = "4", "P" = "5"))
+
+nh_today |> tabyl(sroh) |> adorn_pct_formatting() |> kable()
+```
+
+## Which Variables are Missing?
+
+```{r}
+#| echo: true
+miss_var_summary(nh_today)
+```
+
+## How Many Missing Values?
+
+```{r}
+#| echo: true
+miss_case_table(nh_today)
+```
+
+
+## Updated Codebook
+
+We have `r nrow(nh_today)` rows and `r ncol(nh_today)` in the `nh_today` data now. `r n_case_complete(nh_today)`, or `r round_half_up(pct_complete_case(nh_today),1)`% of the rows have complete data on these `r ncol(nh_today)` variables.
+
+
+Name | Description | NHANES Source
+-------: | :--------------------------------------------------- | :-----
+SEQN | Identifying code | All 6 files
+sbreath | Shortness of breath on stairs/inclines? | CDQ_G (CDQ010)
+age | Age in years at screening | DEMO_G (RIDAGEYR)
+sroh | Self-reported health (E/VG/G/F/P) | HSQ_G (HSD010)
+dbp | Diastolic BP (1st reading, in mm Hg) | BPX_G (BPXDI1)
+bmi | Body Mass Index (kg/$m^2$) | BMX_G (BMXBMI)
+asthma | Ever been told you have asthma? | MCQ_G (MCQ010)
+
+- Inclusions/Exclusions: Valid (1 or 0) response to sbreath, age between 40 and 79 years, inclusive. 
+
+# Project A Tasks
+
+## Establishing a Research Question
+
+How effectively can we predict whether or not an adult subject has experienced "shortness of breath when hurrying on the level or walking up a slight hill" on the basis of their age, self-reported overall health, diastolic blood pressure, body mass index and whether or not they have been told they have asthma?
+
+- Our data come from NHANES 2011-12, and describe a total of `r nrow(nh_today)` (unweighted) adult (ages 40-79) subjects. 
+- We will not use survey weights in this work.
+
+## Identifying / Tidying Outcome 
+
+Our outcome is the subject's response to the following question:
+
+**Have you had shortness of breath either when hurrying on the level or walking up a slight hill?**
+
+This was asked of adults ages 40 years and up, as question `CDQ010` on the `CDQ_G` questionnaire in NHANEZS 2011-12, and we've included subjects who gave either a Yes or No response.
+
+```{r}
+#| echo: true
+nh_today |> tabyl(sbreath) |> adorn_totals() |> 
+  adorn_pct_formatting()
+```
+
+## Identifying Candidate Predictors
+
+The five predictors we will examine for this outcome are `age`, `sroh`, `dbp`, `bmi` and `asthma`.
+
+Name | Description | Missing?
+-------: | :--------------------------------------------------- | :-----:
+SEQN | Identifying code | None
+sbreath | Shortness of breath on stairs/inclines? | None
+age | Age in years at screening | None
+sroh | Self-reported health (E/VG/G/F/P) | `r sum(is.na(nh_today$sroh))`
+dbp | Diastolic BP (1st reading, in mm Hg) | `r sum(is.na(nh_today$dbp))`
+bmi | Body Mass Index (kg/$m^2$) | `r sum(is.na(nh_today$bmi))`
+asthma | Ever been told you have asthma? | `r sum(is.na(nh_today$asthma))`
+
+## Dealing with Missing Data
+
+We have excluded all cases with missing `sbreath` so our outcome is complete.
+
+We will assume MAR for the remaining missing values and then use single imputation both to:
+
+- build a Spearman $\rho^2$ plot
+- fit our models Y and Z
+
+If you wanted to use multiple imputation in the project, I would do that at the end, by refitting the "winning" model and summarizing those results (after imputation) only as part of your **Final Model** materials. I might also use `aregImpute()` to get my single imputation, although I won't here.
+
+## Single Imputation via `simputation`
+
+```{r}
+#| echo: true
+set.seed(43212345)
+nh_today_i <- nh_today |> data.frame() |>
+  impute_rhd(asthma ~ age) |>
+  impute_rlm(dbp ~ age + asthma) |>
+  impute_rlm(bmi ~ dbp + age + asthma) |>
+  impute_cart(sroh ~ age + bmi) |>
+  as_tibble()
+
+n_miss(nh_today_i) # should now have no missing data
+```
+
+## Resulting `nh_today_i` tibble
+
+```{r}
+#| echo: true
+nh_today_i
+```
+
+
+
+# Model Y: The "Main Effects"
+
+## Building a "Main Effects" Model and Plotting Effects
+
+First, we'll assume MAR and do our analysis on the (singly) imputed data `nh_today_i`)
+
+```{r}
+#| echo: true
+d <- datadist(nh_today_i)
+options(datadist = "d")
+
+modY_si <- lrm(sbreath ~ age + sroh + dbp + bmi + asthma,
+            data = nh_today_i, x = TRUE, y = TRUE)
+```
+
+## `modY_si` results (from `lrm` fit)
+
+![](c09/figures/fig1_si.png){width=90%}
+
+## Key Fit Summary Statistics for Model Y (`modY_si`)
+
+```{r}
+#| echo: true
+
+temp <- modY_si$stats
+temp["C"]
+temp["R2"]
+```
+
+The Nagelkerke $R^2$ for this model is `r round_half_up(temp["C"],3)` and the C statistic is `r round_half_up(temp["R2"],3)`.
+
+
+## `glm` version of this same fit
+
+```{r}
+#| echo: true
+modY_si_g <- glm(sbreath ~ age + sroh + dbp + bmi + asthma,
+            data = nh_today_i, 
+            family = binomial(link = logit))
+```
+
+![](c09/figures/fig2.png){width=90%}
+
+```{r}
+#| echo: true
+glance(modY_si_g) |> select(AIC, BIC) |> kable(dig = 1)
+```
+
+
+## Tidied Table of Model Y (Exponentiated) Coefficients
+
+Here's the code: result is on next slide.
+
+```{r}
+#| echo: true
+#| eval: false
+tidy(modY_si_g, exponentiate = TRUE, 
+     conf.int = TRUE, conf.level = 0.90) |>
+  select(term, estimate, std.error, 
+         low90 = conf.low, high90 = conf.high, 
+         p = p.value) |> kable(digits = 3)
+```
+
+## Tidied Table of Model Y (Exponentiated) Coefficients
+
+```{r}
+tidy(modY_si_g, exponentiate = TRUE, 
+     conf.int = TRUE, conf.level = 0.90) |>
+  select(term, estimate, std.error, 
+         low90 = conf.low, high90 = conf.high, 
+         p = p.value) |> kable(digits = 3)
+```
+
+
+## Model Y Effects Plot on Odds Ratio Scale
+
+```{r}
+#| echo: true
+#| fig-height: 4.5
+plot(summary(modY_si))
+```
+
+## Details of Effects Plot (Model Y)
+
+![](c09/figures/fig3.png){height=70%}
+
+## Prediction Plot for Model Y
+
+```{r}
+#| echo: true
+#| fig-height: 5
+ggplot(Predict(modY_si, fun = plogis))
+```
+
+## Confusion Matrix for Model Y
+
+How well does our Model Y classify subjects using a decision rule at 0.5?
+
+```{r}
+#| echo: true
+modY_aug <- augment(modY_si_g, type.predict = "response")
+
+modY_aug <- modY_aug |> 
+  mutate(pred = ifelse(.fitted >= 0.5, 
+                       "Predict SB", "Predict No SB"))
+
+modY_aug |> tabyl(pred, sbreath) |> 
+  adorn_totals(where = c("row", "col")) |> adorn_title()
+```
+
+- What fraction of our predictions are correct with this decision rule?
+
+## Summaries of Classification Accuracy, 1
+
+```{r}
+modY_aug |> tabyl(pred, sbreath) |> 
+  adorn_totals(where = c("row", "col")) |> adorn_title()
+```
+
+- **Accuracy** is (2040 + 289) / 3234 = 0.720
+  - 72.0% of this model's predictions were accurate.
+- **Sensitivity** is 289 / 1015 = 0.285
+  - 28.5% of those who actually were short of breath are predicted to be short of breath.
+- **Specificity** is 2040 / 2219 = 0.919
+  - 91.9% of those who actually weren't short of breath were predicted not to be short of breath.
+
+## Summaries of Classification Accuracy, 2
+
+```{r}
+modY_aug |> tabyl(pred, sbreath) |> 
+  adorn_totals(where = c("row", "col")) |> adorn_title()
+```
+
+- **Positive Predictive Value (PPV)** is 289 / 468 = 0.618
+  - 61.8% of those predicted to be short of breath actually were short of breath.
+- **Negative Predictive Value (NPV)** is 2040 / 2766 = 0.738
+  - 73.8% of those predicted to not be short of breath actually were not short of breath.
+
+## Using the `caret` package to get a confusion matrix
+
+```{r}
+#| echo: true
+#| eval: false
+cmY <- confusionMatrix(
+  data = factor(modY_aug$.fitted >= 0.5),
+  reference = factor(modY_aug$sbreath == 1),
+  positive = "TRUE")
+```
+
+Result on the next slide.
+
+## Confusion Matrix Output (from caret) for Model Y
+
+![](c09/figures/fig4.png){height=90%}
+
+## Calibration Plot for Model Y
+
+```{r}
+#| echo: true
+#| fig-height: 5.5
+plot(calibrate(modY_si))
+```
+
+
+# Model Z: The "Augmented" model
+
+## Considering Non-Linear Terms
+
+- Use 3-6 additional degrees of freedom to account for non-linearity, and add 1-3 non-linear terms.
+- We'll start with the Spearman $\rho^2$ plot...
+
+```{r}
+#| echo: true
+#| fig-height: 4
+
+plot(spearman2(sbreath ~ age + sroh + dbp + bmi + asthma,
+            data = nh_today_i))
+```
+
+## Fitting an "Augmented" Model 
+
+We'll include the interaction of `sroh` and `bmi`, which will add 4 df, and a restricted cubic spline with three knots in `bmi` (which will add one more), and stop there.
+
+```{r}
+#| echo: true
+
+## note: datadist has already been set up
+
+modZ_si <- lrm(sbreath ~ age + sroh + rcs(bmi,3) + 
+                 sroh %ia% bmi + dbp + asthma,
+            data = nh_today_i, x = TRUE, y = TRUE)
+```
+
+## `modZ_si` results (from `lrm` fit)
+
+![](c09/figures/fig5.png){width=90%}
+
+## glm version of Model Z
+
+```{r}
+#| echo: true
+modZ_si_g <- glm(sbreath ~ age + sroh + rcs(bmi, 3) + 
+                   sroh %ia% bmi + dbp + asthma,
+                 data =nh_today_i, 
+                 family =binomial(link =logit))
+```
+
+![](c09/figures/fig6.png){width=95%}
+
+## Tidied Table of Model Z (Exponentiated) Coefficients
+
+```{r}
+tidy(modZ_si_g, exponentiate = TRUE, 
+     conf.int = TRUE, conf.level = 0.90) |>
+  select(term, estimate, std.error, 
+         low90 = conf.low, high90 = conf.high) |> kable(digits = 3)
+```
+
+## Model Z Effects Plot on Odds Ratio Scale
+
+```{r}
+#| echo: true
+plot(summary(modZ_si))
+```
+
+## Prediction Plot for Model Z
+
+```{r}
+#| echo: true
+#| fig-height: 5
+ggplot(Predict(modZ_si, fun = plogis))
+```
+
+## Confusion Matrix for Model Z
+
+How well does our Model Z classify subjects using a decision rule at 0.5?
+
+```{r}
+#| echo: true
+modZ_aug <- augment(modZ_si_g, type.predict = "response")
+
+modZ_aug <- modZ_aug |> 
+  mutate(pred = ifelse(.fitted >= 0.5, 
+                       "Predict SB", "Predict No SB"))
+
+modZ_aug |> tabyl(pred, sbreath) |> 
+  adorn_totals(where = c("row", "col")) |> adorn_title()
+```
+
+## Key Summaries of Classification Accuracy
+
+```{r}
+modZ_aug |> tabyl(pred, sbreath) |> 
+  adorn_totals(where = c("row", "col")) |> adorn_title()
+```
+
+- **Sensitivity** is only slightly changed, to 290 / 1015 = 0.286
+  - 28.6% of those who actually were short of breath are predicted to be short of breath.
+- **Specificity** is still 2040 / 2219 = 0.919
+  - 91.9% of those who actually weren't short of breath were predicted not to be short of breath.
+- **Positive Predictive Value (PPV)** is 290 / 469 = 0.618
+  - Again, 61.8% of those predicted to be short of breath actually were short of breath.
+
+
+## Calibration Plot for Model Z
+
+```{r}
+#| echo: true
+#| fig-height: 5.5
+
+plot(calibrate(modZ_si))
+```
+
+
+# Summarizing/Presenting a Final Model
+
+## Compare Models Y and Z on Key Summaries
+
+```{r}
+#| echo: true
+
+temp1 <- bind_rows(glance(modY_si_g), glance(modZ_si_g)) |>
+  mutate(model = c("Y", "Z")) |>
+  select(model, AIC, BIC) 
+
+temp2 <- tibble(model = c("Y", "Z"),
+  auc = c(modY_si$stats["C"], modZ_si$stats["C"]),
+  r2_nag = c(modY_si$stats["R2"], modZ_si$stats["R2"]))
+
+left_join(temp1, temp2, by = "model") |> kable()
+```
+
+## ANOVA comparing Model Y to Z
+
+![](c09/figures/fig7.png)
+
+## Validating Model Summaries (code)
+
+```{r}
+#| echo: true
+
+set.seed(432123)
+valY <- validate(modY_si, B = 40)
+valZ <- validate(modZ_si, B = 40)
+
+val_1 <- bind_rows(valY[1,], valZ[1,]) |>
+  mutate(model = c("Y", "Z"),
+         AUC_nominal = 0.5 + (index.orig/2), 
+         AUC_validated = 0.5 + (index.corrected/2)) |>
+  select(model, AUC_nominal, AUC_validated)
+
+val_2 <- bind_rows(valY[2,], valZ[2,]) |>
+  mutate(model = c("Y", "Z"),
+         R2_nominal = index.orig,
+         R2_validated = index.corrected) |>
+  select(model, R2_nominal, R2_validated)
+```
+
+See next slide for the result.
+
+## Validating Model Summaries
+
+```{r}
+#| echo: true
+val <- left_join(val_1, val_2, by = "model") 
+
+val |> kable()
+```
+
+Which model should we choose?
+
+## Describing a Meaningful Effect
+
+This is for you to do. 
+
+> [W]rite a detailed and correct description of the effect of at least one predictor on your outcome for your chosen logistic regression model, providing all necessary elements of such a description, and link this directly to what the (effects) plot is telling you.
+
+See Chapter 22 of the Notes for more details, and this is also the major task in several questions within Lab 4. The effects plot for Model Y is repeated in the next slide, and you'll want the actual summary as well as the plot so you can specify the numbers. We prefer you discuss a meaningful effect, should one exist. Pick an effect to describe that is interesting to you.
+
+## Model Y Effects Plot on Odds Ratio Scale
+
+```{r}
+#| echo: true
+#| fig-height: 4.5
+plot(summary(modY_si))
+```
+
+## ROC Calculations for Model Y
+
+```{r}
+#| echo: true
+roc_modY <- roc(nh_today_i$sbreath ~ 
+    predict(modY_si_g, type="response"), ci = TRUE)
+
+roc_modY
+```
+
+```{r}
+#| echo: true
+#| eval: false
+plot(roc_modY, main = "ROC Curve for Model Y",
+     lwd = 2, col = "salmon")
+legend('bottomright', 
+   legend = paste("AUC is: ",round_half_up(auc(roc_modY),3)))
+```
+
+## ROC plot for Model Y
+
+```{r}
+plot(roc_modY, main = "ROC Curve for Model Y",
+     lwd = 2, col = "blue4")
+legend('bottomright', 
+       legend = paste("AUC is: ",round_half_up(auc(roc_modY),3)))
+```
+
+
+## Nomogram for the Final Model (Model Y)
+
+```{r}
+#| echo: true
+#| eval: false
+plot(nomogram(modY_si, fun = plogis,
+              fun.at=c(seq(0.1, 0.9, by = 0.1)),
+              funlabel = "Pr(shortB)"))
+```
+
+Result on next slide.
+
+- The final part of your summary of the final model should be a nomogram **with a demonstration of a predicted probability associated with two new subjects of interest** that differ in terms of some of the parameters in your model.
+- Your predictions should describe two different subjects. You don’t have to call them Harry and Sally, but it is helpful to give them actual names.
+
+## Nomogram for Model Y
+
+```{r}
+plot(nomogram(modY_si, fun = plogis,
+              fun.at=c(seq(0.1, 0.9, by = 0.1)),
+              funlabel = "Pr(shortB)"))
+```
+
+## Next Time
+
+More on Logistic Regression
+
+- See section 20 for more on confusion matrices and ROC curves and some material on assessing assumptions through residual plots, all of which are in the context of logistic models fit with `glm()`.
+- See section 21 for more on using Spearman's $\rho^2$ plot, Nagelkerke $R^2$, the C statistic, its relationship to Somers' d, validation and plotting the results, along with some thoughts on identifying influential points, mostly in the context of logistic models fit with `lrm()`.
+- See section 22 for some thoughts on estimating and interpreting effect sizes in logistic and in linear models. Some really useful tips to be found here.
+
