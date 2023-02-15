@@ -887,10 +887,9 @@ plot(nomogram(mod_big, fun = plogis, funlabel = "Pr(CHD)"))
 
 ## Next Time
 
-Linear Regression
+Back to Linear Regression
 
-- Variable Selection in Linear Regression
+- Variable (Feature) Selection in Linear Regression
 - Ridge Regression and the Lasso
-- K-fold Cross-Validation in a Linear Regression Model
 
 
