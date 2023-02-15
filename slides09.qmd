@@ -94,11 +94,11 @@ nh_merge <- df_mlist |>
 dim(nh_merge)
 ```
 
-We had 262 variables in our original seven tibbles, but that counts the SEQN variable seven times, and we only have it once in our `nh_merge` tibble.
+We had 224 variables in our original six tibbles, but that counts the SEQN variable six times, and we only have it once in our `nh_merge` tibble.
 
-Now, which of these 256 variables are we actually going to use?
+Now, which of these 219 variables are we actually going to use?
 
-## Variables We'll Use Today
+## The 7 Variables We'll Use Today
 
 NHANES | Description | Source
 -------: | :--------------------------------------------------- | :-----
@@ -106,7 +106,6 @@ SEQN | Identifying code | All 6 files
 CDQ010 | Shortness of breath on stairs/inclines? | CDQ_G
 RIDAGEYR | Age in years at screening | DEMO_G
 HSD010 | General health condition (E/VG/G/F/P) | HSQ_G
-LBXSCLSI | Serum Chloride (mmol/L) | BIOPRO_G
 BPXDI1 | Diastolic BP (first reading, in mm Hg) | BPX_G
 BMXBMI | Body Mass Index (kg/$m^2$) | BMX_G
 MCQ010 | Ever been told you have asthma | MCQ_G
