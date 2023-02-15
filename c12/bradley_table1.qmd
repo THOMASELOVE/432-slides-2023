@@ -2,13 +2,16 @@
 title: "Building Table 1 from the `bradley.csv` data"
 author: "Thomas E. Love"
 date: today
-date-format: iso
-output: 
+format: 
   html:
-    theme: materia
-    code-folding: show
-    code_tools: true
+    toc: true
+    number-sections: true
+    code-fold: show
+    code-tools: true
+    code-overflow: wrap
     embed-resources: true
+    date-format: iso
+    theme: materia  ## change the theme if you prefer
 ---
 
 This is a "live code" example that Dr. Love developed for Class 12 of 432, on 2023-02-23.

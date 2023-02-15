@@ -2,20 +2,23 @@
 title: "Simulating to create the `bradley` data"
 author: "Thomas E. Love"
 date: today
-date-format: iso
-output: 
+format: 
   html:
-    theme: materia
-    code-folding: show
-    code_tools: true
+    toc: true
+    number-sections: true
+    code-fold: show
+    code-tools: true
+    code-overflow: wrap
     embed-resources: true
+    date-format: iso
+    theme: materia  ## change the theme if you prefer
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(comment = NA)
 ```
 
-Creating the `bradley` data set, working from the top part of Table 1 of Bradley SM et al. (2019) "Incidence, Risk Factors, and Outcomes Associated With In-Hospital Acute Myocardial Infarction" *JAMA Network Open* 2(1): e187348. doi:10.1001/jamanetworkopen.2018.7348
+Creating the `bradley` data set, working from the top part of Table 1 of Bradley SM et al. (2019) "Incidence, Risk Factors, and Outcomes Associated With In-Hospital Acute Myocardial Infarction" *JAMA Network Open* 2(1): e187348. <https://doi.org/10.1001/jamanetworkopen.2018.7348>
 
 ```{r}
 library(tidyverse)
