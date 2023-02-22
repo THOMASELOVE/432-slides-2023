@@ -12,8 +12,160 @@ format:
 
 ## Today's Agenda
 
+- Using `caret` to help with k-fold cross validation
 - Building a Table One
-- Quiz One
+- Setting Up Quiz One
+
+## Today's R Setup
+
+```{r}
+#| echo: true
+#| message: false
+knitr::opts_chunk$set(comment = NA)
+
+library(janitor)
+library(broom)
+library(knitr)
+library(caret)
+library(tableone)
+library(tidyverse)
+
+theme_set(theme_bw()) 
+```
+
+# K-Fold Cross-Validation
+
+## The `maleptsd` data from last time
+
+The `maleptsd` file on our web site contains information on PTSD (post traumatic stress disorder) symptoms following childbirth for 64 fathers^[Source: Ayers et al. 2007 *J Reproductive and Infant Psychology*. The data are described in more detail in Wright DB and London K (2009) *Modern Regression Techniques Using R* Sage Publications.].  There are ten predictors and the response is a measure of PTSD symptoms. The raw, untransformed values (`ptsd_raw`) are right skewed and contain zeros, so we will work with a transformation, specifically, `ptsd = log(ptsd_raw + 1)` as our outcome, which also contains a lot of zeros. 
+
+```{r}
+#| echo: true
+maleptsd <- read_csv("c11/data/maleptsd.csv", show_col_types = FALSE) |> 
+  clean_names() |>
+  mutate(ptsd = log(ptsd_raw + 1))
+```
+
+## Remember the problem
+
+Only 64 observations, 10 predictors. We came up with a lasso model which used 5 of the predictors, specifically `over3`, `bond`, `neg`, `sup` and `aff`.
+
+```{r}
+#| echo: true
+m1 <- lm(ptsd ~ over3 + bond + neg + sup + aff, 
+         data = maleptsd)
+
+glance(m1) |> select(r2 = r.squared, adjr2 = adj.r.squared, 
+               AIC, BIC) |> kable(digits = c(4,4,2,2))
+```
+
+
+## Set up five-fold cross-validation
+
+We'll use the `trainControl()` function from the **caret** package.
+
+```{r}
+#| echo: true
+set.seed(43212345)
+ctrl <- trainControl(method = "cv", number = 5)
+```
+
+Next, we train our model on those five folds:
+
+```{r}
+#| echo: true
+
+ptsd_mod <- train(ptsd ~ over3 + bond + neg + sup + aff,
+                  data = maleptsd, method = "lm", 
+                  trControl = ctrl)
+```
+
+Results on next slide.
+
+## `ptsd_mod` results
+
+![](c12/figures/ptsd1.png)
+
+Compare this to the nominal $R^2$ we saw earlier of 0.2604.
+
+## A New Model with Two Predictors
+
+Perhaps we can justify a two-predictor model.
+
+```{r}
+#| echo: true
+m2 <- lm(ptsd ~ aff + neg, 
+         data = maleptsd)
+
+glance(m2) |> select(r2 = r.squared, adjr2 = adj.r.squared, 
+               AIC, BIC) |> kable(digits = c(4,4,2,2))
+```
+
+## Train our new model on the same 5 folds
+
+Next, we train our new model on our five folds:
+
+```{r}
+#| echo: true
+
+ptsd_mod2 <- train(ptsd ~ neg + aff,
+                  data = maleptsd, method = "lm", 
+                  trControl = ctrl)
+```
+
+Results on next slide...
+
+## `ptsd_mod2` cross-validation results
+
+![](c12/figures/ptsd2.png)
+
+Compare this to the nominal $R^2$ we saw earlier of 0.2025
+
+## Model Summaries within each of the 5 folds
+
+```{r}
+#| echo: true
+ptsd_mod2$resample
+```
+
+## Final Model from cross-validation
+
+```{r}
+#| echo: true
+
+ptsd_mod2$finalModel
+```
+
+```{r}
+#| echo: true
+glance(ptsd_mod2$finalModel) |>
+  select(r2 = r.squared, adjr2 = adj.r.squared, 
+          AIC, BIC) |> kable(digits = c(4,4,2,2))
+```
+
+## Tidied Coefficients from C-V model 2
+
+```{r}
+#| echo: true
+
+tidy(ptsd_mod2$finalModel, conf.int = TRUE, 
+     conf.level = 0.90) |>
+  select(term, estimate, std.error, 
+         conf.low, conf.high, p.value) |>
+  kable(digits = 3)
+```
+
+## Learning More about V-fold Cross-Validation
+
+There's another example in section 16.5 of our Course Notes.
+
+- There's more on the caret package at <https://topepo.github.io/caret/> although that's older now, and the tidymodels approach will allow us to do a lot of the same things later this term.
+
+Can you do something similar to this with a `glm()` fit in logistic regression?
+
+- Yes, definitely.
+
+# Building a Table One
 
 ## An Original Clinical Investigation
 
