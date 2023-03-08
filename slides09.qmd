@@ -340,7 +340,7 @@ temp["C"]
 temp["R2"]
 ```
 
-The Nagelkerke $R^2$ for this model is `r round_half_up(temp["C"],3)` and the C statistic is `r round_half_up(temp["R2"],3)`.
+The Nagelkerke $R^2$ for this model is `r round_half_up(temp["R2"],3)` and the C statistic is `r round_half_up(temp["C"],3)`.
 
 
 ## `glm` version of this same fit
