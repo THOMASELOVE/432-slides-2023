@@ -559,7 +559,7 @@ mod_4 <- zeroinfl(visits ~ hospital + health + chronic +
 
 ![]("c15/figures/ss03.png")
 
-## Rootogram for ZIP model
+## Rootogram for ZINB model
 
 ```{r}
 #| echo: true
